@@ -517,7 +517,7 @@ static int msm_gpio_direction_output(struct gpio_chip *chip, unsigned offset, in
 
 	val = readl_relaxed(base + g->ctl_reg);
 	val |= BIT(g->oe_bit);
-	writel(val, base + g->ctl_reg);
+	writel_relaxed(val, base + g->ctl_reg);
 
 	raw_spin_unlock_irqrestore(&pctrl->lock, flags);
 
@@ -534,7 +534,7 @@ static int msm_gpio_get_direction(struct gpio_chip *chip, unsigned int offset)
 	g = &pctrl->soc->groups[offset];
 	base = reassign_pctrl_reg(pctrl->soc, offset);
 
-	val = readl(base + g->ctl_reg);
+	val = readl_relaxed(base + g->ctl_reg);
 
 	/* 0 = output, 1 = input */
 	return val & BIT(g->oe_bit) ? 0 : 1;
@@ -604,7 +604,7 @@ static void msm_gpio_dbg_show_one(struct seq_file *s,
 
 	g = &pctrl->soc->groups[offset];
 	base = reassign_pctrl_reg(pctrl->soc, offset);
-	ctl_reg = readl(base + g->ctl_reg);
+	ctl_reg = readl_relaxed(base + g->ctl_reg);
 
 	is_out = !!(ctl_reg & BIT(g->oe_bit));
 	func = (ctl_reg >> g->mux_bit) & 7;
@@ -676,11 +676,11 @@ static void msm_gpio_update_dual_edge_pos(struct msm_pinctrl *pctrl,
 
 	base = reassign_pctrl_reg(pctrl->soc, d->hwirq);
 	do {
-		val = readl(base + g->io_reg) & BIT(g->in_bit);
+		val = readl_relaxed(base + g->io_reg) & BIT(g->in_bit);
 
 		pol = readl_relaxed(base + g->intr_cfg_reg);
 		pol ^= BIT(g->intr_polarity_bit);
-		writel(pol, base + g->intr_cfg_reg);
+		writel_relaxed(pol, base + g->intr_cfg_reg);
 
 		val2 = readl_relaxed(base + g->io_reg) & BIT(g->in_bit);
 		intstat = readl_relaxed(base + g->intr_status_reg);
@@ -740,7 +740,7 @@ static void msm_gpio_irq_enable(struct irq_data *d)
 
 	val = readl_relaxed(base + g->intr_cfg_reg);
 	val |= BIT(g->intr_enable_bit);
-	writel(val, base + g->intr_cfg_reg);
+	writel_relaxed(val, base + g->intr_cfg_reg);
 
 	set_bit(d->hwirq, pctrl->enabled_irqs);
 
@@ -891,7 +891,7 @@ static int msm_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	} else {
 		BUG();
 	}
-	writel(val, base + g->intr_cfg_reg);
+	writel_relaxed(val, base + g->intr_cfg_reg);
 
 	if (test_bit(d->hwirq, pctrl->dual_edge_irqs))
 		msm_gpio_update_dual_edge_pos(pctrl, g, d);
